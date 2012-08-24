@@ -28,6 +28,7 @@ import android.telephony.ServiceState;
 import android.telephony.cdma.CdmaCellLocation;
 import android.os.AsyncResult;
 import android.os.Message;
+import android.os.SystemProperties;
 import android.provider.Telephony.Intents;
 
 import android.text.TextUtils;
@@ -480,7 +481,7 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
     @Override
     public boolean isConcurrentVoiceAndDataAllowed() {
         if (mLteSS.getRadioTechnology() !=
-                    ServiceState.RIL_RADIO_TECHNOLOGY_1xRTT)
+                    ServiceState.RADIO_TECHNOLOGY_1xRTT)
             return getSVDO;
         else
             return (mLteSS.getCssIndicator() == 1);
