@@ -900,7 +900,8 @@ status_t AudioFlinger::setStreamVolume(int stream, float value, int output)
 
 #ifdef WITH_QCOM_LPA
     if( (mLPAOutput != NULL) &&
-        (mLPAStreamType == stream) ) {
+        (mLPAStreamType == stream) &&
+        (mLPAHandle == (audio_io_handle_t)output) ) {
          mStreamTypes[stream].volume = value;
          mLPAOutput->stream->set_volume(mLPAOutput->stream,mLPALeftVol*value,
                                           mLPARightVol*value);
@@ -6778,9 +6779,6 @@ sp<AudioFlinger::EffectHandle> AudioFlinger::EffectModule::controlHandle()
 
 void AudioFlinger::EffectModule::disconnect(const wp<EffectHandle>& handle, bool unpiniflast)
 {
-#ifdef WITH_QCOM_LPA
-    setEnabled(false);
-#endif
     LOGV("disconnect() %p handle %p ", this, handle.unsafe_get());
     // keep a strong reference on this EffectModule to avoid calling the
     // destructor before we exit
