@@ -211,17 +211,19 @@ public class HTCVigorQualcommRIL extends QualcommSharedRIL implements CommandsIn
          */
 
         response = new int[numInts];
-        for (int i = 0; i < numInts; i++) {
-            if (i > 8) {
-                response[i-2] = p.readInt();
-                response[i] = -1;
-            } else {
-                response[i] = p.readInt();
-            }
-        }
-
-        return response;
+	for (int i = 0; i < numInts; i++) {
+		if (i < 7) {
+			response[i] = p.readInt();
+		} else if (i < 14) {
+			if (p.dataAvail() <= 0)
+				break;
+			response[i-2] = p.readInt();
+			response[i] = -1;
+		}
+	}
+	return response;
     }
+
 
     @Override
     protected void
