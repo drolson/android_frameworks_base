@@ -186,9 +186,13 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     static final int LONG_PRESS_HOME_NOTHING = 0;
     static final int LONG_PRESS_HOME_RECENT_DIALOG = 1;
     static final int LONG_PRESS_HOME_RECENT_SYSTEM_UI = 2;
+    static final int LONG_PRESS_HOME_SEARCH = 3;
 
     static final int LONG_PRESS_MENU_NOTHING = 0;
     static final int LONG_PRESS_MENU_SEARCH = 1;
+
+    static final int LONG_PRESS_APP_SWITCH_NOTHING = 0;
+    static final int LONG_PRESS_APP_SWITCH_MENU = 1;
 
     // Masks for checking presence of hardware keys.
     // Must match values in core/res/res/values/config.xml
@@ -470,6 +474,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     // (See Settings.Secure.INCALL_POWER_BUTTON_BEHAVIOR.)
     int mIncallPowerBehavior;
 
+    // Behavior of HOME button during incomming call ring.
+    // (See Settings.Secure.RING_HOME_BUTTON_BEHAVIOR.)
+    int mRingHomeBehavior;
+
     int mLandscapeRotation = 0;  // default landscape rotation
     int mSeascapeRotation = 0;   // "other" landscape rotation, 180 degrees from mLandscapeRotation
     int mPortraitRotation = 0;   // default portrait rotation
@@ -480,6 +488,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     // What we do when the user long presses on menu
     private int mLongPressOnMenuBehavior = -1;
+
+    // What we do when the user long presses on App Switch
+    private int mLongPressOnAppSwitchBehavior = -1;
 
     // Screenshot trigger states
     // Time to volume and power must be pressed within this interval of each other.
@@ -842,11 +853,25 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private void handleLongPressOnHome() {
         // We can't initialize this in init() since the configuration hasn't been loaded yet.
         if (mLongPressOnHomeBehavior < 0) {
-            mLongPressOnHomeBehavior
-                    = mContext.getResources().getInteger(R.integer.config_longPressOnHomeBehavior);
-            if (mLongPressOnHomeBehavior < LONG_PRESS_HOME_NOTHING ||
-                    mLongPressOnHomeBehavior > LONG_PRESS_HOME_RECENT_SYSTEM_UI) {
-                mLongPressOnHomeBehavior = LONG_PRESS_HOME_NOTHING;
+            if ((mContext.getResources().getInteger(
+                    R.integer.config_deviceHardwareKeys) & KEY_MASK_APP_SWITCH) == 0) {
+                // No App Switch button found
+                mLongPressOnHomeBehavior
+                        = mContext.getResources().getInteger(R.integer.config_longPressOnHomeBehavior);
+                if (mLongPressOnHomeBehavior < LONG_PRESS_HOME_NOTHING ||
+                        mLongPressOnHomeBehavior > LONG_PRESS_HOME_RECENT_SYSTEM_UI) {
+                    mLongPressOnHomeBehavior = LONG_PRESS_HOME_NOTHING;
+                }
+            } else {
+                // App Switch key is present, so do something else
+                if ((mContext.getResources().getInteger(
+                        R.integer.config_deviceHardwareKeys) & KEY_MASK_SEARCH) == 0) {
+                    // Hardware search key not present
+                    mLongPressOnHomeBehavior = LONG_PRESS_HOME_SEARCH;
+                } else {
+                    // App Switch and Search Key are found
+                    mLongPressOnHomeBehavior = LONG_PRESS_HOME_NOTHING;
+                }
             }
         }
 
@@ -867,6 +892,30 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             } catch (RemoteException e) {
                 Slog.e(TAG, "RemoteException when showing recent apps", e);
             }
+        } else if (mLongPressOnHomeBehavior == LONG_PRESS_HOME_SEARCH) {
+            performHapticFeedbackLw(null, HapticFeedbackConstants.LONG_PRESS, false);
+            triggerVirtualKeypress(KeyEvent.KEYCODE_SEARCH);
+        }
+    }
+
+    private void handleLongPressAppSwitch() {
+        if (mLongPressOnAppSwitchBehavior < 0) {
+            if ((mContext.getResources().getInteger(
+                    R.integer.config_deviceHardwareKeys) & KEY_MASK_MENU) == 0) {
+                // Hardware menu key not present
+                mLongPressOnAppSwitchBehavior = LONG_PRESS_APP_SWITCH_MENU;
+            } else {
+                mLongPressOnAppSwitchBehavior = LONG_PRESS_APP_SWITCH_NOTHING;
+            }
+        }
+
+        if (mLongPressOnAppSwitchBehavior == LONG_PRESS_APP_SWITCH_MENU) {
+            performHapticFeedbackLw(null, HapticFeedbackConstants.LONG_PRESS, false);
+            triggerVirtualKeypress(KeyEvent.KEYCODE_MENU);
+
+            // Eat the longpress so it won't dismiss the menu dialog when
+            // the user lets go of the app switch key
+            mAppSwitchPressed = false;
         }
     }
 
@@ -1135,6 +1184,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mIncallPowerBehavior = Settings.Secure.getInt(resolver,
                     Settings.Secure.INCALL_POWER_BUTTON_BEHAVIOR,
                     Settings.Secure.INCALL_POWER_BUTTON_BEHAVIOR_DEFAULT);
+            mRingHomeBehavior = Settings.Secure.getInt(resolver,
+                    Settings.Secure.RING_HOME_BUTTON_BEHAVIOR,
+                    Settings.Secure.RING_HOME_BUTTON_BEHAVIOR_DEFAULT);
             mVolumeWakeScreen = (Settings.System.getInt(resolver,
                     Settings.System.VOLUME_WAKE_SCREEN, 0) == 1);
             mVolBtnMusicControls = (Settings.System.getInt(resolver,
@@ -1782,6 +1834,12 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                         if (telephonyService != null) {
                             incomingRinging = telephonyService.isRinging();
                         }
+                        if ((mRingHomeBehavior
+                             & Settings.Secure.RING_HOME_BUTTON_BEHAVIOR_ANSWER) != 0
+                            && incomingRinging) {
+                          Log.i(TAG, "Answering with HOME button.");
+                          telephonyService.answerRingingCall();
+                        }
                     } catch (RemoteException ex) {
                         Log.w(TAG, "RemoteException from getPhoneInterface()", ex);
                     }
@@ -1887,10 +1945,18 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     }
                 }
                 return -1;
-            }
-
-            if (down && repeatCount == 0) {
-                mAppSwitchPressed = true;
+            } else if (down) {
+                if (repeatCount == 0) {
+                    mAppSwitchPressed = true;
+                } else if ((event.getFlags() & KeyEvent.FLAG_LONG_PRESS) != 0) {
+                    if (!keyguardOn) {
+                        handleLongPressAppSwitch();
+                        if (mLongPressOnAppSwitchBehavior != LONG_PRESS_APP_SWITCH_NOTHING) {
+                            // Do not launch dialog when released
+                            return -1;
+                        }
+                    }
+                }
             }
             return -1;
         } else if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -4189,6 +4255,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 pw.print(" mLockScreenTimerActive="); pw.println(mLockScreenTimerActive);
         pw.print(prefix); pw.print("mEndcallBehavior="); pw.print(mEndcallBehavior);
                 pw.print(" mIncallPowerBehavior="); pw.print(mIncallPowerBehavior);
+                pw.print(" mRingHomeBehavior="); pw.print(mRingHomeBehavior);
                 pw.print(" mLongPressOnHomeBehavior="); pw.println(mLongPressOnHomeBehavior);
         pw.print(prefix); pw.print("mLandscapeRotation="); pw.print(mLandscapeRotation);
                 pw.print(" mSeascapeRotation="); pw.println(mSeascapeRotation);

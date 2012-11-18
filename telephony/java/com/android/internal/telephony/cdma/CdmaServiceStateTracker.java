@@ -75,6 +75,8 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
 
     // Current Otasp value
     int mCurrentOtaspMode = OTASP_UNINITIALIZED;
+    private static final boolean isTimeServicesDaemonEnabled =
+                   SystemProperties.getBoolean("persist.timed.enable", false);
 
      /** if time between NITZ updates is less than mNitzUpdateSpacing the update may be ignored. */
     private static final int NITZ_UPDATE_SPACING_DEFAULT = 1000 * 60 * 10;
@@ -1444,9 +1446,10 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
     }
 
     private boolean getAutoTime() {
-        try {
-            return Settings.System.getInt(cr, Settings.System.AUTO_TIME) > 0;
-        } catch (SettingNotFoundException snfe) {
+        if (isTimeServicesDaemonEnabled) {
+            return Settings.System.getInt(cr, Settings.System.AUTO_TIME, 1) > 0;
+        } else {
+            // Return true for CDMA mode
             return true;
         }
     }
@@ -1486,7 +1489,9 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
      * @param time time set by network
      */
     private void setAndBroadcastNetworkSetTime(long time) {
-        SystemClock.setCurrentTimeMillis(time);
+        if (isTimeServicesDaemonEnabled) {
+            SystemClock.setCurrentTimeMillis(time);
+        }
         Intent intent = new Intent(TelephonyIntents.ACTION_NETWORK_SET_TIME);
         intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING);
         intent.putExtra("time", time);
