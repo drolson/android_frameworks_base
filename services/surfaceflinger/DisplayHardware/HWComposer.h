@@ -70,6 +70,8 @@ public:
 #ifdef QCOM_HARDWARE
     // gets the list flags
     uint32_t getFlags() const;
+#endif
+#ifdef QCOM_HDMI_OUT
     void perform(int event, int value);
 #endif
 

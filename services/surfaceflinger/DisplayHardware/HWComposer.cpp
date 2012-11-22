@@ -231,7 +231,7 @@ void HWComposer::dump(String8& result, char* buffer, size_t SIZE,
     }
 }
 
-#ifdef QCOM_HARDWARE
+#ifdef QCOM_HDMI_OUT
 void HWComposer::perform(int event, int value) {
     if (mHwc) {
         mHwc->perform(mHwc, event, value);
