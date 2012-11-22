@@ -219,7 +219,6 @@ public:
 
     GLuint getProtectedTexName() const { return mProtectedTexName; }
 
-    // 0: surface doesn't need dithering, 1: use if necessary, 2: use permanently
     inline int  getUseDithering() const { return mUseDithering; }
 
 
@@ -441,7 +440,7 @@ private:
    // only written in the main thread, only read in other threads
    volatile     int32_t                     mSecureFrameBuffer;
 
-                int                         mUseDithering;
+                bool                        mUseDithering;
 };
 
 // ---------------------------------------------------------------------------

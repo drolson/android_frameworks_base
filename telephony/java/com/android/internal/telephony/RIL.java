@@ -24,7 +24,6 @@ import static android.telephony.TelephonyManager.NETWORK_TYPE_UMTS;
 import static android.telephony.TelephonyManager.NETWORK_TYPE_HSDPA;
 import static android.telephony.TelephonyManager.NETWORK_TYPE_HSUPA;
 import static android.telephony.TelephonyManager.NETWORK_TYPE_HSPA;
-import static android.telephony.TelephonyManager.NETWORK_TYPE_HSPAP;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -3061,13 +3060,7 @@ public class RIL extends BaseCommands implements CommandsInterface {
         for (int i = 0 ; i < numApplications ; i++) {
             ca = new IccCardApplication();
             ca.app_type       = ca.AppTypeFromRILInt(p.readInt());
-            int appstate      = p.readInt();
-            ca.app_state      = ca.AppStateFromRILInt(appstate);
-            if (appstate == -1) {
-                if (RILJ_LOGD) riljLog(
-                        "Illegal app, Mark it READY! RIL_APPSTATE_ILLEGAL "
-                        + appstate + " modified to " + ca.app_state);
-            }
+            ca.app_state      = ca.AppStateFromRILInt(p.readInt());
             ca.perso_substate = ca.PersoSubstateFromRILInt(p.readInt());
             ca.aid            = p.readString();
             ca.app_label      = p.readString();
@@ -3290,10 +3283,6 @@ public class RIL extends BaseCommands implements CommandsInterface {
        // Determine the radio access type
        String radioString = SystemProperties.get(
                TelephonyProperties.PROPERTY_DATA_NETWORK_TYPE, "unknown");
-       if (radioString.contains(":")) {
-           String[] parts = radioString.split(":");
-           radioString = parts[0];
-       }
        int radioType;
        if (radioString.equals("GPRS")) {
            radioType = NETWORK_TYPE_GPRS;
@@ -3307,8 +3296,6 @@ public class RIL extends BaseCommands implements CommandsInterface {
            radioType = NETWORK_TYPE_HSUPA;
        } else if (radioString.equals("HSPA")) {
            radioType = NETWORK_TYPE_HSPA;
-       } else if (radioString.equals("HSPAP")) {
-           radioType = NETWORK_TYPE_HSPAP;
        } else {
            radioType = NETWORK_TYPE_UNKNOWN;
        }

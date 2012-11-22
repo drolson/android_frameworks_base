@@ -16,18 +16,12 @@
 
 package android.text.method;
 
-import android.content.Context;
-import android.content.res.Configuration;
-import android.content.res.Resources;
 import android.text.*;
 import android.text.method.TextKeyListener.Capitalize;
 import android.util.SparseArray;
-import android.view.inputmethod.InputMethodManager;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.View;
-
-import java.util.Locale;
 
 /**
  * This is the standard key listener for alphabetic input on qwerty
@@ -118,7 +112,7 @@ public class QwertyKeyListener extends BaseKeyListener {
                 char c = content.charAt(selStart - 1);
 
                 if (c == i || c == Character.toUpperCase(i) && view != null) {
-                    if (showCharacterPicker(view, content, c, false, count, keyCode)) {
+                    if (showCharacterPicker(view, content, c, false, count)) {
                         resetMetaState(content);
                         return true;
                     }
@@ -129,7 +123,7 @@ public class QwertyKeyListener extends BaseKeyListener {
         if (i == KeyCharacterMap.PICKER_DIALOG_INPUT) {
             if (view != null) {
                 showCharacterPicker(view, content,
-                                    KeyCharacterMap.PICKER_DIALOG_INPUT, true, 1, keyCode);
+                                    KeyCharacterMap.PICKER_DIALOG_INPUT, true, 1);
             }
             resetMetaState(content);
             return true;
@@ -495,35 +489,18 @@ public class QwertyKeyListener extends BaseKeyListener {
     };
 
     private boolean showCharacterPicker(View view, Editable content, char c,
-                                        boolean insert, int count, int keyCode) {
+                                        boolean insert, int count) {
         Integer resId = SYM_PICKER_RES_ID.get(c);
 
         if (resId == null) {
             return false;
         }
 
-        if (count == 1) {
-            String set = "";
-            try {
-                Resources origRes = view.getContext().getResources();
-                Configuration config = new Configuration(origRes.getConfiguration());
-                // try to find out input locale from the current IME
-                config.locale = new Locale(
-                    ((InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE))
-                        .getCurrentInputMethodSubtype().getLocale());
-                set = new Resources(origRes.getAssets(), origRes.getDisplayMetrics(), config)
-                                   .getString(resId);
-                // re-set Resources to the original
-                new Resources(origRes.getAssets(), origRes.getDisplayMetrics(), origRes.getConfiguration());
-            } catch (Exception e) {
-                // uses System locale, should be a good enough fallback
-                set = view.getContext().getString(resId);
-            }
+        String set = view.getContext().getString(resId);
 
-            if (set.length() > 0) {
-                new CharacterPickerDialog(this, view.getContext(),
-                                          view, content, set, insert, keyCode).show();
-            }
+        if (count == 1) {
+            new CharacterPickerDialog(view.getContext(),
+                                      view, content, set, insert).show();
         }
 
         return true;
