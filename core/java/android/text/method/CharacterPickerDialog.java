@@ -22,10 +22,8 @@ import android.app.Dialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.*;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View.OnClickListener;
-import android.view.View.OnKeyListener;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -40,34 +38,28 @@ import android.widget.GridView;
  * Dialog for choosing accented characters related to a base character.
  */
 public class CharacterPickerDialog extends Dialog
-        implements OnItemClickListener, OnClickListener, OnKeyListener {
+        implements OnItemClickListener, OnClickListener {
     private View mView;
     private Editable mText;
     private String mOptions;
     private boolean mInsert;
     private LayoutInflater mInflater;
     private Button mCancelButton;
-    private GridView mGrid;
-    private int mKeyCode;
-    private QwertyKeyListener mParent;
 
     /**
      * Creates a new CharacterPickerDialog that presents the specified
      * <code>options</code> for insertion or replacement (depending on
      * the sense of <code>insert</code>) into <code>text</code>.
      */
-    public CharacterPickerDialog(QwertyKeyListener parent,
-                                 Context context, View view,
+    public CharacterPickerDialog(Context context, View view,
                                  Editable text, String options,
-                                 boolean insert, int keyCode) {
+                                 boolean insert) {
         super(context, com.android.internal.R.style.Theme_Panel);
 
         mView = view;
         mText = text;
         mOptions = options;
         mInsert = insert;
-        mKeyCode = keyCode;
-        mParent = parent;
         mInflater = LayoutInflater.from(context);
     }
 
@@ -82,14 +74,12 @@ public class CharacterPickerDialog extends Dialog
 
         setContentView(R.layout.character_picker);
 
-        mGrid = (GridView) findViewById(R.id.characterPicker);
-        mGrid.setAdapter(new OptionsAdapter(getContext()));
-        mGrid.setOnItemClickListener(this);
-        mGrid.setOnKeyListener(this);
+        GridView grid = (GridView) findViewById(R.id.characterPicker);
+        grid.setAdapter(new OptionsAdapter(getContext()));
+        grid.setOnItemClickListener(this);
 
         mCancelButton = (Button) findViewById(R.id.cancel);
         mCancelButton.setOnClickListener(this);
-        mCancelButton.setOnKeyListener(this);
     }
 
     /**
@@ -99,41 +89,6 @@ public class CharacterPickerDialog extends Dialog
         String result = String.valueOf(mOptions.charAt(position));
         replaceCharacterAndClose(result);
     }
-
-    /**
-     * Handles keypresses: navigating keys are not handled, cancelling keys
-     * dismiss the dialog without action, all other keys finish the dialog
-     * and allow the user to continue inputting text.
-     */
-    public boolean onKey(View v, int keyCode, KeyEvent event) {
-        if (keyCode == mKeyCode) {
-            if (event.getAction() == KeyEvent.ACTION_UP) {
-                mKeyCode = -1;
-            }
-            return false;
-        }
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
-                keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ||
-                keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
-                keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-                keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                keyCode == KeyEvent.KEYCODE_ENTER) {
-                return false;
-            }
-            if (keyCode == KeyEvent.KEYCODE_ESCAPE ||
-                keyCode == KeyEvent.KEYCODE_CLEAR) {
-                dismiss();
-            } else {
-                if (keyCode != KeyEvent.KEYCODE_DEL) {
-                    onClick(mGrid.getSelectedView());
-                }
-                return mParent.onKeyDown(mView, mText, keyCode, event);
-            }
-        }
-        return false;
-    }
-
 
     private void replaceCharacterAndClose(CharSequence replace) {
         int selEnd = Selection.getSelectionEnd(mText);

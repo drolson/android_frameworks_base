@@ -1570,12 +1570,6 @@ public final class Settings {
         /** @hide */
         public static final int VOLUME_OVERLAY_NONE = 3;
 
-        /** Volume Adjust Sounds Enable, This is the noise made when using volume hard buttons
-        * Defaults to 1 - sounds enabled
-        * @hide
-        */
-        public static final String VOLUME_ADJUST_SOUNDS_ENABLED = "volume_adjust_sounds_enabled";
-
         /**
          * Ringer mode. This is used internally, changing this value will not
          * change the ringer mode. See AudioManager.
@@ -1861,15 +1855,6 @@ public final class Settings {
          * disabled by the application.
          */
         public static final String ACCELEROMETER_ROTATION = "accelerometer_rotation";
-
-        /**
-         * Control whether the accelerometer will be used to change lockscreen
-         * orientation.  If 0, it will not be used unless explicitly requested
-         * by the application; if 1, it will be used by default unless explicitly
-         * disabled by the application.
-         * @hide
-         */
-        public static final String LOCKSCREEN_ROTATION = "lockscreen_rotation";
 
         /**
          * Control the type of rotation which can be performed using the accelerometer
@@ -2367,13 +2352,12 @@ public final class Settings {
         /**
          * Whether to show the clock in status bar
          * of the stock battery icon
-         * 0: Don't show the clock
-         * 1: Right clock
-         * 2: Center clock
+         * 0: don't show the clock
+         * 1: show the clock
          * default: 1
          * @hide
          */
-        public static final String STATUS_BAR_CLOCK_STYLE = "status_bar_clock_style";
+        public static final String STATUS_BAR_CLOCK = "status_bar_clock";
 
         /**
          * Whether to show the signal text or signal bars.
@@ -2397,13 +2381,6 @@ public final class Settings {
          * @hide
          */
         public static final String STATUS_BAR_IME_SWITCHER = "status_bar_ime_switcher";
-
-        /**
-         * Whether to place the status bar at the bottom of the screen
-         * @hide
-         */
-
-        public static final String STATUS_BAR_BOTTOM = "status_bar_bottom";
 
         /**
          * Whether to use a separate delay for "slide to unlock" and security
@@ -2659,7 +2636,6 @@ public final class Settings {
             TIME_12_24,
             DATE_FORMAT,
             ACCELEROMETER_ROTATION,
-            LOCKSCREEN_ROTATION,
             USER_ROTATION,
             DTMF_TONE_WHEN_DIALING,
             DTMF_TONE_TYPE_WHEN_DIALING,
@@ -3199,12 +3175,6 @@ public final class Settings {
          * @hide
          */
         public static final String DEVICE_HOSTNAME = "device_hostname";
-
-	/**
-         * Whether to display the ADB notification.
-         * @hide
-         */
-        public static final String ADB_NOTIFY = "adb_notify";
 
         /**
          * Setting to allow mock locations and location provider status to be injected into the
@@ -4702,36 +4672,6 @@ public final class Settings {
          */
         public static final int INCALL_POWER_BUTTON_BEHAVIOR_DEFAULT =
                 INCALL_POWER_BUTTON_BEHAVIOR_SCREEN_OFF;
-
-        /**
-         * What happens when the user presses the Home button when the
-         * phone is ringing.<br/>
-         * <b>Values:</b><br/>
-         * 1 - Nothing happens. (Default behavior)<br/>
-         * 2 - The Home button answer the current call.<br/>
-         *
-         * @hide
-         */
-        public static final String RING_HOME_BUTTON_BEHAVIOR = "ring_home_button_behavior";
-
-        /**
-         * RING_HOME_BUTTON_BEHAVIOR value for "do nothing".
-         * @hide
-         */
-        public static final int RING_HOME_BUTTON_BEHAVIOR_DO_NOTHING = 0x1;
-
-        /**
-         * RING_HOME_BUTTON_BEHAVIOR value for "answer".
-         * @hide
-         */
-        public static final int RING_HOME_BUTTON_BEHAVIOR_ANSWER = 0x2;
-
-        /**
-         * RING_HOME_BUTTON_BEHAVIOR default value.
-         * @hide
-         */
-        public static final int RING_HOME_BUTTON_BEHAVIOR_DEFAULT =
-                RING_HOME_BUTTON_BEHAVIOR_DO_NOTHING;
 
         /**
          * The current night mode that has been selected by the user.  Owned

@@ -74,8 +74,7 @@ AudioPlayer(audioSink,observer) {
     mSeeked = false;
     objectsAlive++;
     timeStarted = 0;
-    mNumOutputChannels =0;
-    mNumInputChannels =0;
+    numChannels =0;
     afd = -1;
     ionfd = -1;
     timePlayed = 0;
@@ -311,10 +310,9 @@ status_t LPAPlayer::start(bool sourceAlreadyStarted) {
     success = format->findInt32(kKeySampleRate, &mSampleRate);
     CHECK(success);
 
-    success = format->findInt32(kKeyChannelCount, &mNumInputChannels);
+    success = format->findInt32(kKeyChannelCount, &numChannels);
     CHECK(success);
 
-    mNumOutputChannels = 2;  // Always hard code Output Channels to 2
     if ( afd >= 0 ) {
         struct msm_audio_config config;
         if ( ioctl(afd, AUDIO_GET_CONFIG, &config) < 0 ) {
@@ -325,8 +323,8 @@ status_t LPAPlayer::start(bool sourceAlreadyStarted) {
         }
 
         config.sample_rate = mSampleRate;
-        config.channel_count =  mNumOutputChannels;
-        LOGV(" in initate_play, sample_rate=%d and channel count=%d \n", mSampleRate, mNumOutputChannels);
+        config.channel_count =  numChannels;
+        LOGV(" in initate_play, sample_rate=%d and channel count=%d \n", mSampleRate, numChannels);
         if ( ioctl(afd, AUDIO_SET_CONFIG, &config) < 0 ) {
             LOGE("could not set config");
             close(afd);
@@ -348,9 +346,9 @@ status_t LPAPlayer::start(bool sourceAlreadyStarted) {
         }
 
         if (!bIsA2DPEnabled) {
-            LOGV("Opening a routing session for audio playback: sessionId = %d mSampleRate %d mNumOutputChannels %d",
-                 sessionId, mSampleRate, mNumOutputChannels);
-            status_t err = mAudioSink->openSession(AUDIO_FORMAT_PCM_16_BIT, sessionId, mSampleRate, mNumOutputChannels);
+            LOGV("Opening a routing session for audio playback: sessionId = %d mSampleRate %d numChannels %d",
+                 sessionId, mSampleRate, numChannels);
+            status_t err = mAudioSink->openSession(AUDIO_FORMAT_PCM_16_BIT, sessionId, mSampleRate, numChannels);
             if (err != OK) {
                 if (mFirstBuffer != NULL) {
                     mFirstBuffer->release();
@@ -379,7 +377,7 @@ status_t LPAPlayer::start(bool sourceAlreadyStarted) {
             LOGV("LPA Driver Started");
         } else {
             LOGV("Before Audio Sink Open");
-            status_t ret = mAudioSink->open(mSampleRate, mNumOutputChannels,AUDIO_FORMAT_PCM_16_BIT, DEFAULT_AUDIOSINK_BUFFERCOUNT);
+            status_t ret = mAudioSink->open(mSampleRate, numChannels,AUDIO_FORMAT_PCM_16_BIT, DEFAULT_AUDIOSINK_BUFFERCOUNT);
             mAudioSink->start();
             LOGV("After Audio Sink Open");
             mAudioSinkOpen = true;
@@ -539,9 +537,9 @@ void LPAPlayer::resume() {
             mAudioSink->stop();
             mAudioSink->close();
             mAudioSinkOpen = false;
-            LOGV("resume:: opening audio session with mSampleRate %d mNumOutputChannels %d sessionId %d",
-                 mSampleRate, mNumOutputChannels, sessionId);
-            status_t err = mAudioSink->openSession(AUDIO_FORMAT_PCM_16_BIT, sessionId,  mSampleRate, mNumOutputChannels);
+            LOGV("resume:: opening audio session with mSampleRate %d numChannels %d sessionId %d",
+                 mSampleRate, numChannels, sessionId);
+            status_t err = mAudioSink->openSession(AUDIO_FORMAT_PCM_16_BIT, sessionId,  mSampleRate, numChannels);
             a2dpDisconnectPause = false;
             mInternalSeeking = true;
             mReachedEOS = false;
@@ -627,7 +625,7 @@ void LPAPlayer::resume() {
                     }
 
                     LOGV("Resume: Before Audio Sink Open");
-                    status_t ret = mAudioSink->open(mSampleRate, mNumOutputChannels,AUDIO_FORMAT_PCM_16_BIT,
+                    status_t ret = mAudioSink->open(mSampleRate, numChannels,AUDIO_FORMAT_PCM_16_BIT,
                                                     DEFAULT_AUDIOSINK_BUFFERCOUNT);
                     mAudioSink->start();
                     LOGV("Resume: After Audio Sink Open");
@@ -825,13 +823,7 @@ void LPAPlayer::decoderThreadEntry() {
                 numOfBytes = MEM_BUFFER_SIZE;
 
             LOGV("Calling fillBuffer for size %d",numOfBytes);
-            if( mNumInputChannels == 1) {
-                buf.bytesToWrite = fillBuffer(buf.localBuf, numOfBytes/2);
-                convertMonoToStereo((int16_t*)buf.localBuf, buf.bytesToWrite);
-                buf.bytesToWrite = buf.bytesToWrite *2;
-            } else {
-                buf.bytesToWrite = fillBuffer(buf.localBuf, numOfBytes);
-            }
+            buf.bytesToWrite = fillBuffer(buf.localBuf, numOfBytes);
             LOGV("fillBuffer returned size %d",buf.bytesToWrite);
 
             /* TODO: Check if we have to notify the app if an error occurs */
@@ -888,8 +880,10 @@ void LPAPlayer::decoderThreadEntry() {
                 CHECK(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_RAW));
                 success = format->findInt32(kKeySampleRate, &mSampleRate);
                 CHECK(success);
+                success = format->findInt32(kKeyChannelCount, &numChannels);
+                CHECK(success);
                 LOGV("Before Audio Sink Open");
-                status_t ret = mAudioSink->open(mSampleRate, mNumOutputChannels,AUDIO_FORMAT_PCM_16_BIT, DEFAULT_AUDIOSINK_BUFFERCOUNT);
+                status_t ret = mAudioSink->open(mSampleRate, numChannels,AUDIO_FORMAT_PCM_16_BIT, DEFAULT_AUDIOSINK_BUFFERCOUNT);
                 mAudioSink->start();
                 LOGV("After Audio Sink Open");
             }
@@ -1009,8 +1003,10 @@ void LPAPlayer::eventThreadEntry() {
                     success = format->findInt32(kKeySampleRate, &mSampleRate);
                     CHECK(success);
 
+                    success = format->findInt32(kKeyChannelCount, &numChannels);
+                    CHECK(success);
                     LOGV("Before Audio Sink Open");
-                    status_t ret = mAudioSink->open(mSampleRate, mNumOutputChannels,AUDIO_FORMAT_PCM_16_BIT, DEFAULT_AUDIOSINK_BUFFERCOUNT);
+                    status_t ret = mAudioSink->open(mSampleRate, numChannels,AUDIO_FORMAT_PCM_16_BIT, DEFAULT_AUDIOSINK_BUFFERCOUNT);
                     mAudioSink->start();
                     LOGV("After Audio Sink Open");
                     mAudioSinkOpen = true;
@@ -1370,19 +1366,6 @@ void LPAPlayer::createThreads() {
     pthread_attr_destroy(&attr);
 }
 
-void LPAPlayer::convertMonoToStereo(int16_t *data, size_t size)
-{
-    int i =0;
-    int16_t *start_pointer = data;
-    int  monoFrameCount = (size) / (sizeof(int16_t));
-
-    for (i = monoFrameCount; i > 0 ; i--)
-    {
-        int16_t temp_sample = *(start_pointer + i - 1);
-        *(start_pointer + (i*2) - 1) = temp_sample;
-        *(start_pointer + (i*2) - 2) = temp_sample;
-    }
-}
 
 size_t LPAPlayer::fillBuffer(void *data, size_t size) {
     LOGE("fillBuffer");
@@ -1465,12 +1448,16 @@ size_t LPAPlayer::fillBuffer(void *data, size_t size) {
                     success = format->findInt32(kKeySampleRate, &mSampleRate);
                     CHECK(success);
 
+                    int32_t numChannels;
+                    success = format->findInt32(kKeyChannelCount, &numChannels);
+                    CHECK(success);
+
                     if(bIsA2DPEnabled) {
                         mAudioSink->stop();
                         mAudioSink->close();
                         mAudioSinkOpen = false;
                         status_t err = mAudioSink->open(
-                                mSampleRate, mNumOutputChannels, AUDIO_FORMAT_PCM_16_BIT,
+                                mSampleRate, numChannels, AUDIO_FORMAT_PCM_16_BIT,
                                 DEFAULT_AUDIOSINK_BUFFERCOUNT);
                         if (err != OK) {
                             mSource->stop();
@@ -1485,9 +1472,9 @@ size_t LPAPlayer::fillBuffer(void *data, size_t size) {
                            For MP3 we might not come here but for AAC we need this */
                         mAudioSink->stop();
                         mAudioSink->closeSession();
-                        LOGV("Opening a routing session in fillBuffer: sessionId = %d mSampleRate %d mNumOutputChannels %d",
-                             sessionId, mSampleRate, mNumOutputChannels);
-                        status_t err = mAudioSink->openSession(AUDIO_FORMAT_PCM_16_BIT, sessionId, mSampleRate, mNumOutputChannels);
+                        LOGV("Opening a routing session in fillBuffer: sessionId = %d mSampleRate %d numChannels %d",
+                             sessionId, mSampleRate, numChannels);
+                        status_t err = mAudioSink->openSession(AUDIO_FORMAT_PCM_16_BIT, sessionId, mSampleRate, numChannels);
                         if (err != OK) {
                             mSource->stop();
                             return err;
